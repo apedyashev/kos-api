@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strings"
 	"sync"
@@ -55,6 +56,7 @@ func (h *nodesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func (h *nodesHandler) listNodes(w http.ResponseWriter, r *http.Request) {
 	nodes, err := h.nodeService.ListNodes(r.Context())
 	if err != nil {
+		log.Printf("list nodes failed: %v", err)
 		http.Error(w, "failed to list nodes", http.StatusInternalServerError)
 		return
 	}
@@ -87,6 +89,7 @@ func (h *nodesHandler) createNode(w http.ResponseWriter, r *http.Request) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
+		log.Printf("create node failed: %v", err)
 		http.Error(w, "failed to create node", http.StatusInternalServerError)
 		return
 	}

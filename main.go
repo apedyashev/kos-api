@@ -7,12 +7,27 @@ import (
 	"os"
 
 	handler "kos-api/api"
+	"kos-api/internal/config"
+	"kos-api/internal/repository/postgres"
+	"kos-api/internal/service"
 )
 
 func main() {
+	appConfig, err := config.Load()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	nodeRepository, err := postgres.NewNodeRepository(appConfig.DatabaseURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer nodeRepository.Close()
+
+	nodeService := service.NewNodeService(nodeRepository)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api", handler.Handler)
-	mux.HandleFunc("/api/nodes", handler.NodesHandler)
+	mux.Handle("/api/nodes", handler.NewNodesHandler(nodeService))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "KOS API root")
 	})

@@ -2,14 +2,54 @@
 
 Minimal Go HTTP API for Vercel deployment.
 
+## Database setup
+
+Create a Supabase project, open the SQL editor, and run
+`migrations/001_create_nodes.sql`. Then set `DATABASE_URL` to the Supabase
+pooled connection string. Use the pooler URL for serverless deployments.
+
+For local development, create a `.env` file or export the variable directly:
+
+```bash
+export DATABASE_URL='postgres://postgres.<project-ref>:[password]@aws-0-<region>.pooler.supabase.com:6543/postgres?sslmode=require'
+```
+
+Never commit the connection string. The `.gitignore` already excludes `.env`.
+
+Install the PostgreSQL client on macOS if `psql` is not available:
+
+```bash
+brew install libpq
+brew link --force libpq
+```
+
+Run the node table migration from the `kos-api` directory:
+
+```bash
+make migrate
+```
+
+The target loads `DATABASE_URL` from `.env` and runs
+`migrations/001_create_nodes.sql` with errors enabled. The migration is
+safe to run again because it uses `IF NOT EXISTS`.
+
 ## Local development
 
 ```bash
 cd kos-api
-go run ./api
+make run
 ```
 
-The API is exposed through Vercel-compatible Go serverless handlers in `api/`.
+The API is exposed through the local HTTP server and Vercel-compatible Go
+serverless handlers in `api/`.
+
+Useful commands:
+
+- `make run` -> load `.env` and start the API
+- `make migrate` -> apply the Supabase database migration
+- `make test` -> run tests
+- `make test-race` -> run tests with the race detector
+- `make check` -> format, test, and build
 
 ## Deploy to Vercel
 
@@ -21,6 +61,15 @@ The API is exposed through Vercel-compatible Go serverless handlers in `api/`.
 ## Endpoints
 
 - `GET /api` -> health payload
-- `GET /api/nodes` -> demo node list
+- `GET /api/nodes` -> nodes ordered by most recently updated
+- `POST /api/nodes` -> create a node
 
-For a production app, replace the demo payloads with your real persistence layer.
+Request body for `POST /api/nodes`:
+
+```json
+{
+	"title": "Subscription Lifecycle",
+	"content": {"type": "doc", "content": []},
+	"isStub": false
+}
+```

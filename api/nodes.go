@@ -3,6 +3,7 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"net/http"
 	"strings"
@@ -33,11 +34,12 @@ type createNodeRequestDTO struct {
 // NodesHandler serves the node collection endpoint.
 type nodesHandler struct {
 	nodeService *service.NodeService
+	debugErrors bool
 }
 
 // NewNodesHandler creates an HTTP handler backed by the node service.
-func NewNodesHandler(nodeService *service.NodeService) http.Handler {
-	return &nodesHandler{nodeService: nodeService}
+func NewNodesHandler(nodeService *service.NodeService, debugErrors bool) http.Handler {
+	return &nodesHandler{nodeService: nodeService, debugErrors: debugErrors}
 }
 
 // ServeHTTP handles GET and POST requests for /api/nodes.
@@ -57,6 +59,10 @@ func (h *nodesHandler) listNodes(w http.ResponseWriter, r *http.Request) {
 	nodes, err := h.nodeService.ListNodes(r.Context())
 	if err != nil {
 		log.Printf("list nodes failed: %v", err)
+		if h.debugErrors {
+			http.Error(w, fmt.Sprintf("failed to list nodes: %v", err), http.StatusInternalServerError)
+			return
+		}
 		http.Error(w, "failed to list nodes", http.StatusInternalServerError)
 		return
 	}
@@ -90,6 +96,10 @@ func (h *nodesHandler) createNode(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		log.Printf("create node failed: %v", err)
+		if h.debugErrors {
+			http.Error(w, fmt.Sprintf("failed to create node: %v", err), http.StatusInternalServerError)
+			return
+		}
 		http.Error(w, "failed to create node", http.StatusInternalServerError)
 		return
 	}
@@ -116,7 +126,7 @@ func NodesHandler(w http.ResponseWriter, r *http.Request) {
 			defaultNodesErr = err
 			return
 		}
-		defaultNodesHandler = NewNodesHandler(service.NewNodeService(nodeRepository))
+		defaultNodesHandler = NewNodesHandler(service.NewNodeService(nodeRepository), appConfig.DebugErrors)
 	})
 	if defaultNodesErr != nil {
 		http.Error(w, "database configuration is unavailable", http.StatusInternalServerError)

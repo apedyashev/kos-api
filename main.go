@@ -27,7 +27,7 @@ func main() {
 	nodeService := service.NewNodeService(nodeRepository)
 	mux := http.NewServeMux()
 	mux.HandleFunc("/api", handler.Handler)
-	mux.Handle("/api/nodes", handler.NewNodesHandler(nodeService))
+	mux.Handle("/api/nodes", handler.NewNodesHandler(nodeService, appConfig.DebugErrors))
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "KOS API root")
 	})

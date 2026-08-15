@@ -1,15 +1,15 @@
 package main
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
 	"os"
+	"time"
 
-	handler "kos-api/api"
+	"kos-api/domains/node"
 	"kos-api/internal/config"
-	"kos-api/internal/repository/postgres"
-	"kos-api/internal/service"
 )
 
 func main() {
@@ -18,16 +18,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	nodeRepository, err := postgres.NewNodeRepository(appConfig.DatabaseURL)
+	nodeModule, err := node.New(appConfig)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer nodeRepository.Close()
-
-	nodeService := service.NewNodeService(nodeRepository)
+	defer nodeModule.Close()
 	mux := http.NewServeMux()
-	mux.HandleFunc("/api", handler.Handler)
-	mux.Handle("/api/nodes", handler.NewNodesHandler(nodeService, appConfig.DebugErrors))
+	mux.HandleFunc("/api", healthHandler)
+	nodeModule.RegisterRoutes(mux)
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		fmt.Fprintf(w, "KOS API root")
 	})
@@ -39,4 +37,24 @@ func main() {
 
 	log.Printf("listening on :%s", port)
 	log.Fatal(http.ListenAndServe(":"+port, mux))
+}
+
+type healthResponse struct {
+	Status    string    `json:"status"`
+	Service   string    `json:"service"`
+	Timestamp time.Time `json:"timestamp"`
+}
+
+func healthHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method != http.MethodGet {
+		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json")
+	_ = json.NewEncoder(w).Encode(healthResponse{
+		Status:    "ok",
+		Service:   "kos-api",
+		Timestamp: time.Now().UTC(),
+	})
 }

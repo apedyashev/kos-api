@@ -40,8 +40,7 @@ cd kos-api
 make run
 ```
 
-The API is exposed through the local HTTP server and Vercel-compatible Go
-serverless handlers in `api/`.
+The API is exposed through the local HTTP server registered in `main.go`.
 
 Useful commands:
 

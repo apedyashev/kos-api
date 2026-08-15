@@ -8,7 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"kos-api/internal/domain"
+	"kos-api/domains/node/persistence/entities"
 )
 
 // NodeRepository persists nodes in PostgreSQL.
@@ -39,7 +39,7 @@ func (r *NodeRepository) Close() {
 }
 
 // List returns all nodes, newest first.
-func (r *NodeRepository) List(ctx context.Context) ([]domain.NodeDomain, error) {
+func (r *NodeRepository) List(ctx context.Context) ([]entities.NodeEntity, error) {
 	rows, err := r.database.Query(ctx, `
 		SELECT id::text, title, content, is_stub, created_at, updated_at
 		FROM nodes
@@ -49,13 +49,13 @@ func (r *NodeRepository) List(ctx context.Context) ([]domain.NodeDomain, error) 
 	}
 	defer rows.Close()
 
-	nodes := make([]domain.NodeDomain, 0)
+	nodes := make([]entities.NodeEntity, 0)
 	for rows.Next() {
-		var node domain.NodeDomain
-		if err := rows.Scan(&node.ID, &node.Title, &node.Content, &node.IsStub, &node.CreatedAt, &node.UpdatedAt); err != nil {
+		var entity entities.NodeEntity
+		if err := rows.Scan(&entity.ID, &entity.Title, &entity.Content, &entity.IsStub, &entity.CreatedAt, &entity.UpdatedAt); err != nil {
 			return nil, fmt.Errorf("scan node: %w", err)
 		}
-		nodes = append(nodes, node)
+		nodes = append(nodes, entity)
 	}
 	if err := rows.Err(); err != nil {
 		return nil, fmt.Errorf("iterate nodes: %w", err)
@@ -64,19 +64,16 @@ func (r *NodeRepository) List(ctx context.Context) ([]domain.NodeDomain, error) 
 }
 
 // Create inserts a node and returns the persisted record.
-func (r *NodeRepository) Create(ctx context.Context, node domain.NodeDomain) (domain.NodeDomain, error) {
-	content := json.RawMessage(node.Content)
+func (r *NodeRepository) Create(ctx context.Context, entity entities.NodeEntity) (entities.NodeEntity, error) {
+	content := json.RawMessage(entity.Content)
 	err := r.database.QueryRow(ctx, `
 		INSERT INTO nodes (title, content, is_stub)
 		VALUES ($1, $2, $3)
 		RETURNING id::text, title, content, is_stub, created_at, updated_at`,
-		node.Title, content, node.IsStub,
-	).Scan(&node.ID, &node.Title, &node.Content, &node.IsStub, &node.CreatedAt, &node.UpdatedAt)
+		entity.Title, content, entity.IsStub,
+	).Scan(&entity.ID, &entity.Title, &entity.Content, &entity.IsStub, &entity.CreatedAt, &entity.UpdatedAt)
 	if err != nil {
-		if err == pgx.ErrNoRows {
-			return domain.NodeDomain{}, fmt.Errorf("insert node returned no row: %w", err)
-		}
-		return domain.NodeDomain{}, fmt.Errorf("insert node: %w", err)
+		return entities.NodeEntity{}, fmt.Errorf("insert node: %w", err)
 	}
-	return node, nil
+	return entity, nil
 }

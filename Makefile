@@ -10,7 +10,7 @@ migrate:
 	@set -a; . ./.env; set +a; psql "$$DATABASE_URL" -v ON_ERROR_STOP=1 -f migrations/001_create_nodes.sql
 
 fmt:
-	gofmt -w main.go api internal
+	gofmt -w main.go domains internal
 
 test:
 	go test ./...

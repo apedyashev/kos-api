@@ -2,7 +2,8 @@ package node
 
 import (
 	"fmt"
-	"net/http"
+
+	"github.com/labstack/echo/v4"
 
 	"kos-api/domains/node/api/handlers"
 	"kos-api/domains/node/persistence/repository/postgres"
@@ -12,7 +13,7 @@ import (
 
 // Module owns node-domain composition and route registration.
 type Module struct {
-	handler http.Handler
+	handler *handlers.NodesHandler
 	close   func()
 }
 
@@ -30,8 +31,11 @@ func New(appConfig config.Config) (*Module, error) {
 }
 
 // RegisterRoutes registers the node domain routes.
-func (m *Module) RegisterRoutes(mux *http.ServeMux) {
-	mux.Handle("/api/nodes", m.handler)
+func (m *Module) RegisterRoutes(e *echo.Echo) {
+	e.GET("/api/nodes", m.handler.ListNodes)
+	e.POST("/api/nodes", m.handler.CreateNode)
+	e.GET("/api/nodes/:id", m.handler.GetNode)
+	e.PATCH("/api/nodes/:id", m.handler.UpdateNode)
 }
 
 // Close releases the node domain resources.

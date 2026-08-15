@@ -3,12 +3,14 @@ package postgres
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
 	"kos-api/domains/node/persistence/entities"
+	"kos-api/domains/node/service/domain"
 )
 
 // NodeRepository persists nodes in PostgreSQL.
@@ -74,6 +76,42 @@ func (r *NodeRepository) Create(ctx context.Context, entity entities.NodeEntity)
 	).Scan(&entity.ID, &entity.Title, &entity.Content, &entity.IsStub, &entity.CreatedAt, &entity.UpdatedAt)
 	if err != nil {
 		return entities.NodeEntity{}, fmt.Errorf("insert node: %w", err)
+	}
+	return entity, nil
+}
+
+// GetByID returns a single node by its id.
+func (r *NodeRepository) GetByID(ctx context.Context, id string) (entities.NodeEntity, error) {
+	var entity entities.NodeEntity
+	err := r.database.QueryRow(ctx, `
+		SELECT id::text, title, content, is_stub, created_at, updated_at
+		FROM nodes
+		WHERE id = $1`, id,
+	).Scan(&entity.ID, &entity.Title, &entity.Content, &entity.IsStub, &entity.CreatedAt, &entity.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.NodeEntity{}, domain.ErrNodeNotFound
+		}
+		return entities.NodeEntity{}, fmt.Errorf("query node: %w", err)
+	}
+	return entity, nil
+}
+
+// Update persists changes to an existing node and returns the updated record.
+func (r *NodeRepository) Update(ctx context.Context, entity entities.NodeEntity) (entities.NodeEntity, error) {
+	content := json.RawMessage(entity.Content)
+	err := r.database.QueryRow(ctx, `
+		UPDATE nodes
+		SET title = $2, content = $3, is_stub = $4, updated_at = now()
+		WHERE id = $1
+		RETURNING id::text, title, content, is_stub, created_at, updated_at`,
+		entity.ID, entity.Title, content, entity.IsStub,
+	).Scan(&entity.ID, &entity.Title, &entity.Content, &entity.IsStub, &entity.CreatedAt, &entity.UpdatedAt)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return entities.NodeEntity{}, domain.ErrNodeNotFound
+		}
+		return entities.NodeEntity{}, fmt.Errorf("update node: %w", err)
 	}
 	return entity, nil
 }

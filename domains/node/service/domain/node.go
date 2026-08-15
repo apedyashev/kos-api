@@ -10,6 +10,9 @@ import (
 // ErrInvalidNode identifies a node that does not satisfy business invariants.
 var ErrInvalidNode = errors.New("invalid node")
 
+// ErrNodeNotFound identifies a node that does not exist.
+var ErrNodeNotFound = errors.New("node not found")
+
 // NodeDomain is the business representation of a knowledge node.
 type NodeDomain struct {
 	ID        string
@@ -29,6 +32,24 @@ type CreateNodeInput struct {
 
 // Validate checks business invariants for a new node.
 func (input CreateNodeInput) Validate() error {
+	if strings.TrimSpace(input.Title) == "" {
+		return errors.Join(ErrInvalidNode, errors.New("title is required"))
+	}
+	if len(bytes.TrimSpace(input.Content)) == 0 {
+		return errors.Join(ErrInvalidNode, errors.New("content is required"))
+	}
+	return nil
+}
+
+// UpdateNodeInput contains the values needed to update an existing node.
+type UpdateNodeInput struct {
+	Title   string
+	Content []byte
+	IsStub  bool
+}
+
+// Validate checks business invariants for an updated node.
+func (input UpdateNodeInput) Validate() error {
 	if strings.TrimSpace(input.Title) == "" {
 		return errors.Join(ErrInvalidNode, errors.New("title is required"))
 	}

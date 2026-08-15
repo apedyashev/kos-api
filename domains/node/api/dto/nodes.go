@@ -18,3 +18,10 @@ type CreateNodeRequestDTO struct {
 	Content json.RawMessage `json:"content"`
 	IsStub  bool            `json:"isStub"`
 }
+
+// UpdateNodeRequestDTO is the transport payload for updating a node.
+type UpdateNodeRequestDTO struct {
+	Title   string          `json:"title"`
+	Content json.RawMessage `json:"content"`
+	IsStub  bool            `json:"isStub"`
+}

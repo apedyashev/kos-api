@@ -1,11 +1,12 @@
 package handlers
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 
 	"kos-api/domains/node/api/dto"
 	"kos-api/domains/node/service"
@@ -23,65 +24,79 @@ func NewNodesHandler(nodeService service.Service, debugErrors bool) *NodesHandle
 	return &NodesHandler{nodeService: nodeService, debugErrors: debugErrors}
 }
 
-// ServeHTTP handles GET and POST requests for /api/nodes.
-func (h *NodesHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		h.listNodes(w, r)
-	case http.MethodPost:
-		h.createNode(w, r)
-	default:
-		w.Header().Set("Allow", "GET, POST")
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-	}
-}
-
-func (h *NodesHandler) listNodes(w http.ResponseWriter, r *http.Request) {
-	nodes, err := h.nodeService.ListNodes(r.Context())
+// ListNodes handles GET /api/nodes.
+func (h *NodesHandler) ListNodes(c echo.Context) error {
+	nodes, err := h.nodeService.ListNodes(c.Request().Context())
 	if err != nil {
 		log.Printf("list nodes failed: %v", err)
-		if h.debugErrors {
-			http.Error(w, fmt.Sprintf("failed to list nodes: %v", err), http.StatusInternalServerError)
-			return
-		}
-		http.Error(w, "failed to list nodes", http.StatusInternalServerError)
-		return
+		return h.internalError(c, "failed to list nodes", err)
 	}
 
 	responses := make([]dto.NodeResponseDTO, 0, len(nodes))
 	for _, currentNode := range nodes {
 		responses = append(responses, MapDomainToResponse(currentNode))
 	}
-	writeJSON(w, http.StatusOK, responses)
+	return c.JSON(http.StatusOK, responses)
 }
 
-func (h *NodesHandler) createNode(w http.ResponseWriter, r *http.Request) {
+// CreateNode handles POST /api/nodes.
+func (h *NodesHandler) CreateNode(c echo.Context) error {
 	var request dto.CreateNodeRequestDTO
-	if err := json.NewDecoder(r.Body).Decode(&request); err != nil {
-		http.Error(w, "invalid JSON body", http.StatusBadRequest)
-		return
+	if err := c.Bind(&request); err != nil {
+		return c.String(http.StatusBadRequest, "invalid JSON body")
 	}
 
-	createdNode, err := h.nodeService.CreateNode(r.Context(), MapCreateRequestToDomain(request))
+	createdNode, err := h.nodeService.CreateNode(c.Request().Context(), MapCreateRequestToDomain(request))
 	if err != nil {
 		if errors.Is(err, domain.ErrInvalidNode) {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
+			return c.String(http.StatusBadRequest, err.Error())
 		}
 		log.Printf("create node failed: %v", err)
-		if h.debugErrors {
-			http.Error(w, fmt.Sprintf("failed to create node: %v", err), http.StatusInternalServerError)
-			return
-		}
-		http.Error(w, "failed to create node", http.StatusInternalServerError)
-		return
+		return h.internalError(c, "failed to create node", err)
 	}
 
-	writeJSON(w, http.StatusCreated, MapDomainToResponse(createdNode))
+	return c.JSON(http.StatusCreated, MapDomainToResponse(createdNode))
 }
 
-func writeJSON(w http.ResponseWriter, status int, value any) {
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(status)
-	_ = json.NewEncoder(w).Encode(value)
+// GetNode handles GET /api/nodes/:id.
+func (h *NodesHandler) GetNode(c echo.Context) error {
+	foundNode, err := h.nodeService.GetNode(c.Request().Context(), c.Param("id"))
+	if err != nil {
+		if errors.Is(err, domain.ErrNodeNotFound) {
+			return c.String(http.StatusNotFound, "node not found")
+		}
+		log.Printf("get node failed: %v", err)
+		return h.internalError(c, "failed to get node", err)
+	}
+
+	return c.JSON(http.StatusOK, MapDomainToResponse(foundNode))
+}
+
+// UpdateNode handles PATCH /api/nodes/:id.
+func (h *NodesHandler) UpdateNode(c echo.Context) error {
+	var request dto.UpdateNodeRequestDTO
+	if err := c.Bind(&request); err != nil {
+		return c.String(http.StatusBadRequest, "invalid JSON body")
+	}
+
+	updatedNode, err := h.nodeService.UpdateNode(c.Request().Context(), c.Param("id"), MapUpdateRequestToDomain(request))
+	if err != nil {
+		if errors.Is(err, domain.ErrInvalidNode) {
+			return c.String(http.StatusBadRequest, err.Error())
+		}
+		if errors.Is(err, domain.ErrNodeNotFound) {
+			return c.String(http.StatusNotFound, "node not found")
+		}
+		log.Printf("update node failed: %v", err)
+		return h.internalError(c, "failed to update node", err)
+	}
+
+	return c.JSON(http.StatusOK, MapDomainToResponse(updatedNode))
+}
+
+func (h *NodesHandler) internalError(c echo.Context, message string, err error) error {
+	if h.debugErrors {
+		return c.String(http.StatusInternalServerError, fmt.Sprintf("%s: %v", message, err))
+	}
+	return c.String(http.StatusInternalServerError, message)
 }

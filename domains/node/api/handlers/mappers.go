@@ -20,6 +20,17 @@ func MapCreateRequestToDomain(request dto.CreateNodeRequestDTO) domain.CreateNod
 	}
 }
 
+// MapUpdateRequestToDomain converts an API request DTO into domain update input.
+func MapUpdateRequestToDomain(request dto.UpdateNodeRequestDTO) domain.UpdateNodeInput {
+	content := request.Content
+	if content == nil {
+		content = json.RawMessage(`{"type":"doc","content":[]}`)
+	}
+	return domain.UpdateNodeInput{
+		Title: strings.TrimSpace(request.Title), Content: content, IsStub: request.IsStub,
+	}
+}
+
 // MapDomainToResponse converts a domain node into an API response DTO.
 func MapDomainToResponse(currentNode domain.NodeDomain) dto.NodeResponseDTO {
 	return dto.NodeResponseDTO{

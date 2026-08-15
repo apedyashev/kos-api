@@ -1,12 +1,12 @@
 package main
 
 import (
-	"encoding/json"
-	"fmt"
 	"log"
 	"net/http"
 	"os"
 	"time"
+
+	"github.com/labstack/echo/v4"
 
 	"kos-api/domains/node"
 	"kos-api/internal/config"
@@ -23,11 +23,13 @@ func main() {
 		log.Fatal(err)
 	}
 	defer nodeModule.Close()
-	mux := http.NewServeMux()
-	mux.HandleFunc("/api", healthHandler)
-	nodeModule.RegisterRoutes(mux)
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Fprintf(w, "KOS API root")
+
+	e := echo.New()
+	e.HideBanner = true
+	e.GET("/api", healthHandler)
+	nodeModule.RegisterRoutes(e)
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "KOS API root")
 	})
 
 	port := os.Getenv("PORT")
@@ -36,7 +38,7 @@ func main() {
 	}
 
 	log.Printf("listening on :%s", port)
-	log.Fatal(http.ListenAndServe(":"+port, mux))
+	log.Fatal(e.Start(":" + port))
 }
 
 type healthResponse struct {
@@ -45,14 +47,8 @@ type healthResponse struct {
 	Timestamp time.Time `json:"timestamp"`
 }
 
-func healthHandler(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodGet {
-		http.Error(w, "method not allowed", http.StatusMethodNotAllowed)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	_ = json.NewEncoder(w).Encode(healthResponse{
+func healthHandler(c echo.Context) error {
+	return c.JSON(http.StatusOK, healthResponse{
 		Status:    "ok",
 		Service:   "kos-api",
 		Timestamp: time.Now().UTC(),

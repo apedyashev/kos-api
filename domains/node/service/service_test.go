@@ -11,6 +11,7 @@ import (
 
 type fakeRepository struct {
 	created entities.NodeEntity
+	updated entities.NodeEntity
 }
 
 func (f *fakeRepository) List(context.Context) ([]entities.NodeEntity, error) {
@@ -19,6 +20,18 @@ func (f *fakeRepository) List(context.Context) ([]entities.NodeEntity, error) {
 
 func (f *fakeRepository) Create(_ context.Context, entity entities.NodeEntity) (entities.NodeEntity, error) {
 	f.created = entity
+	return entity, nil
+}
+
+func (f *fakeRepository) GetByID(_ context.Context, id string) (entities.NodeEntity, error) {
+	if id != f.created.ID {
+		return entities.NodeEntity{}, domain.ErrNodeNotFound
+	}
+	return f.created, nil
+}
+
+func (f *fakeRepository) Update(_ context.Context, entity entities.NodeEntity) (entities.NodeEntity, error) {
+	f.updated = entity
 	return entity, nil
 }
 

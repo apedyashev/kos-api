@@ -2,6 +2,6 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "go",
   "installCommand": "go mod download",
-  "buildCommand": "go build ./...",
+  "buildCommand": "go build -o server .",
   "outputDirectory": "."
 }

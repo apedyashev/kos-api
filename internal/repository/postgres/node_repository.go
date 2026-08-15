@@ -22,6 +22,9 @@ func NewNodeRepository(databaseURL string) (*NodeRepository, error) {
 	if err != nil {
 		return nil, fmt.Errorf("parse database URL: %w", err)
 	}
+	// Supabase's transaction pooler can route statements across backend
+	// connections, so named prepared statements can collide between sessions.
+	databaseConfig.ConnConfig.DefaultQueryExecMode = pgx.QueryExecModeSimpleProtocol
 
 	database, err := pgxpool.NewWithConfig(context.Background(), databaseConfig)
 	if err != nil {

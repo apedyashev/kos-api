@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"kos-api/domains/node/persistence/entities"
 	"kos-api/domains/node/service/domain"
@@ -11,7 +12,7 @@ import (
 
 // Repository defines the persistence operations required by the node service.
 type Repository interface {
-	List(ctx context.Context) ([]entities.NodeEntity, error)
+	List(ctx context.Context, titleStartsWith string) ([]entities.NodeEntity, error)
 	Create(ctx context.Context, node entities.NodeEntity) (entities.NodeEntity, error)
 	GetByID(ctx context.Context, id string) (entities.NodeEntity, error)
 	Update(ctx context.Context, node entities.NodeEntity) (entities.NodeEntity, error)
@@ -19,7 +20,7 @@ type Repository interface {
 
 // Service defines the node use cases exposed to the API layer.
 type Service interface {
-	ListNodes(ctx context.Context) ([]domain.NodeDomain, error)
+	ListNodes(ctx context.Context, titleStartsWith string) ([]domain.NodeDomain, error)
 	CreateNode(ctx context.Context, input domain.CreateNodeInput) (domain.NodeDomain, error)
 	GetNode(ctx context.Context, id string) (domain.NodeDomain, error)
 	UpdateNode(ctx context.Context, id string, input domain.UpdateNodeInput) (domain.NodeDomain, error)
@@ -34,9 +35,9 @@ func New(repository Repository) Service {
 	return &nodeService{repository: repository}
 }
 
-// ListNodes returns nodes ordered by the repository's persistence policy.
-func (s *nodeService) ListNodes(ctx context.Context) ([]domain.NodeDomain, error) {
-	entitiesList, err := s.repository.List(ctx)
+// ListNodes returns nodes ordered by the repository's persistence policy, optionally filtered by title prefix.
+func (s *nodeService) ListNodes(ctx context.Context, titleStartsWith string) ([]domain.NodeDomain, error) {
+	entitiesList, err := s.repository.List(ctx, strings.TrimSpace(titleStartsWith))
 	if err != nil {
 		return nil, fmt.Errorf("list nodes: %w", err)
 	}

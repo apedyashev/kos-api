@@ -14,7 +14,7 @@ type fakeRepository struct {
 	updated entities.NodeEntity
 }
 
-func (f *fakeRepository) List(context.Context) ([]entities.NodeEntity, error) {
+func (f *fakeRepository) List(context.Context, string) ([]entities.NodeEntity, error) {
 	return nil, nil
 }
 

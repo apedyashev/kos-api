@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
@@ -40,12 +41,23 @@ func (r *NodeRepository) Close() {
 	r.database.Close()
 }
 
-// List returns all nodes, newest first.
-func (r *NodeRepository) List(ctx context.Context) ([]entities.NodeEntity, error) {
-	rows, err := r.database.Query(ctx, `
-		SELECT id::text, title, content, is_stub, created_at, updated_at
-		FROM nodes
-		ORDER BY updated_at DESC, id DESC`)
+// List returns nodes, newest first, optionally filtered by a case-insensitive title prefix.
+func (r *NodeRepository) List(ctx context.Context, titleStartsWith string) ([]entities.NodeEntity, error) {
+	var rows pgx.Rows
+	var err error
+	if titleStartsWith == "" {
+		rows, err = r.database.Query(ctx, `
+			SELECT id::text, title, content, is_stub, created_at, updated_at
+			FROM nodes
+			ORDER BY updated_at DESC, id DESC`)
+	} else {
+		rows, err = r.database.Query(ctx, `
+			SELECT id::text, title, content, is_stub, created_at, updated_at
+			FROM nodes
+			WHERE title ILIKE $1 ESCAPE '\'
+			ORDER BY updated_at DESC, id DESC`,
+			escapeLikePattern(titleStartsWith)+"%")
+	}
 	if err != nil {
 		return nil, fmt.Errorf("query nodes: %w", err)
 	}
@@ -63,6 +75,12 @@ func (r *NodeRepository) List(ctx context.Context) ([]entities.NodeEntity, error
 		return nil, fmt.Errorf("iterate nodes: %w", err)
 	}
 	return nodes, nil
+}
+
+// escapeLikePattern escapes ILIKE wildcard characters so user input is matched literally.
+func escapeLikePattern(value string) string {
+	replacer := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)
+	return replacer.Replace(value)
 }
 
 // Create inserts a node and returns the persisted record.

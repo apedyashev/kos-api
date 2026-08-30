@@ -32,10 +32,10 @@ func New(appConfig config.Config) (*Module, error) {
 
 // RegisterRoutes registers the node domain routes.
 func (m *Module) RegisterRoutes(e *echo.Echo) {
-	e.GET("/api/nodes", m.handler.ListNodes)
-	e.POST("/api/nodes", m.handler.CreateNode)
-	e.GET("/api/nodes/:id", m.handler.GetNode)
-	e.PATCH("/api/nodes/:id", m.handler.UpdateNode)
+	e.GET("/api/spaces/:spaceSlug/nodes", m.handler.ListNodes)
+	e.POST("/api/spaces/:spaceSlug/nodes", m.handler.CreateNode)
+	e.GET("/api/spaces/:spaceSlug/nodes/:id", m.handler.GetNode)
+	e.PATCH("/api/spaces/:spaceSlug/nodes/:id", m.handler.UpdateNode)
 }
 
 // Close releases the node domain resources.

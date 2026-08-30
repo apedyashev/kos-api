@@ -25,3 +25,8 @@ type UpdateNodeRequestDTO struct {
 	Content json.RawMessage `json:"content"`
 	IsStub  bool            `json:"isStub"`
 }
+
+type GetNodeRequestInput struct {
+	NodeId    string
+	SpaceSlug string
+}

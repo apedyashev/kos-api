@@ -4,9 +4,8 @@ Minimal Go HTTP API for Vercel deployment.
 
 ## Database setup
 
-Create a Supabase project, open the SQL editor, and run
-`migrations/001_create_nodes.sql`. Then set `DATABASE_URL` to the Supabase
-pooled connection string. Use the pooler URL for serverless deployments.
+Create a Supabase project, then set `DATABASE_URL` to the Supabase pooled
+connection string. Use the pooler URL for serverless deployments.
 
 For local development, create a `.env` file or export the variable directly:
 
@@ -23,15 +22,15 @@ brew install libpq
 brew link --force libpq
 ```
 
-Run the node table migration from the `kos-api` directory:
+Run all database migrations from the `kos-api` directory:
 
 ```bash
 make migrate
 ```
 
-The target loads `DATABASE_URL` from `.env` and runs
-`migrations/001_create_nodes.sql` with errors enabled. The migration is
-safe to run again because it uses `IF NOT EXISTS`.
+The target loads `DATABASE_URL` from `.env` and runs each SQL file in
+`migrations/` in filename order with errors enabled. The migrations are safe
+to run again because they use idempotent schema statements.
 
 ## Local development
 

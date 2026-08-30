@@ -83,3 +83,4 @@ Run all commands inside `kos-api/`. There is no CI workflow in this repo — the
 1. Domain invariants return errors (`ErrInvalidNode`, `ErrNodeNotFound`-style sentinels) via `errors.Join`/`errors.Is`.
 2. Services propagate and wrap errors with `fmt.Errorf("...: %w", err)`.
 3. Handlers translate sentinel errors to HTTP status codes (400 for invalid input, 404 for not found, 500 otherwise) — never expose internal error details unless `DEBUG_ERRORS` is enabled.
+4. Before returning a 500-mapped error from a handler, log it via `internal/logger`'s `logger.Error(message string, err error)` — never a raw `log.Printf` — so failures are always visible in server logs regardless of `DEBUG_ERRORS`.

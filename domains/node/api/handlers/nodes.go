@@ -3,7 +3,6 @@ package handlers
 import (
 	"errors"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -11,6 +10,7 @@ import (
 	"kos-api/domains/node/api/dto"
 	"kos-api/domains/node/service"
 	"kos-api/domains/node/service/domain"
+	"kos-api/internal/logger"
 )
 
 // NodesHandler handles the node collection HTTP endpoint.
@@ -28,7 +28,7 @@ func NewNodesHandler(nodeService service.Service, debugErrors bool) *NodesHandle
 func (h *NodesHandler) ListNodes(c echo.Context) error {
 	nodes, err := h.nodeService.ListNodes(c.Request().Context(), c.QueryParam("search"))
 	if err != nil {
-		log.Printf("list nodes failed: %v", err)
+		logger.Error("list nodes failed", err)
 		return h.internalError(c, "failed to list nodes", err)
 	}
 
@@ -51,21 +51,23 @@ func (h *NodesHandler) CreateNode(c echo.Context) error {
 		if errors.Is(err, domain.ErrInvalidNode) {
 			return c.String(http.StatusBadRequest, err.Error())
 		}
-		log.Printf("create node failed: %v", err)
+		logger.Error("create node failed", err)
 		return h.internalError(c, "failed to create node", err)
 	}
 
 	return c.JSON(http.StatusCreated, MapDomainToResponse(createdNode))
 }
 
-// GetNode handles GET /api/nodes/:id.
+// GetNode handles GET /api/space/:spaceSlug/nodes/:id.
 func (h *NodesHandler) GetNode(c echo.Context) error {
-	foundNode, err := h.nodeService.GetNode(c.Request().Context(), c.Param("id"))
+	spaceSlug := c.Param("spaceSlug")
+	foundNode, err := h.nodeService.GetNode(c.Request().Context(), c.Param("id"), spaceSlug)
+
 	if err != nil {
 		if errors.Is(err, domain.ErrNodeNotFound) {
 			return c.String(http.StatusNotFound, "node not found")
 		}
-		log.Printf("get node failed: %v", err)
+		logger.Error("get node failed", err)
 		return h.internalError(c, "failed to get node", err)
 	}
 
@@ -87,7 +89,7 @@ func (h *NodesHandler) UpdateNode(c echo.Context) error {
 		if errors.Is(err, domain.ErrNodeNotFound) {
 			return c.String(http.StatusNotFound, "node not found")
 		}
-		log.Printf("update node failed: %v", err)
+		logger.Error("update node failed", err)
 		return h.internalError(c, "failed to update node", err)
 	}
 

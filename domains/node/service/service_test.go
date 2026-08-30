@@ -10,8 +10,9 @@ import (
 )
 
 type fakeRepository struct {
-	created entities.NodeEntity
-	updated entities.NodeEntity
+	created      entities.NodeEntity
+	updated      entities.NodeEntity
+	getSpaceSlug string
 }
 
 func (f *fakeRepository) List(context.Context, string) ([]entities.NodeEntity, error) {
@@ -23,7 +24,8 @@ func (f *fakeRepository) Create(_ context.Context, entity entities.NodeEntity) (
 	return entity, nil
 }
 
-func (f *fakeRepository) GetByID(_ context.Context, id string) (entities.NodeEntity, error) {
+func (f *fakeRepository) GetByID(_ context.Context, id string, spaceSlug string) (entities.NodeEntity, error) {
+	f.getSpaceSlug = spaceSlug
 	if id != f.created.ID {
 		return entities.NodeEntity{}, domain.ErrNodeNotFound
 	}
@@ -56,5 +58,16 @@ func TestCreateNodeMapsDomainAndEntity(t *testing.T) {
 	}
 	if created.Title != "Welcome" || !repository.created.IsStub {
 		t.Fatalf("unexpected node mapping: domain=%+v entity=%+v", created, repository.created)
+	}
+}
+
+func TestGetNodePassesSpaceSlugToRepository(t *testing.T) {
+	repository := &fakeRepository{created: entities.NodeEntity{ID: "node-1", Title: "Welcome"}}
+	_, err := New(repository).GetNode(context.Background(), "node-1", "personal")
+	if err != nil {
+		t.Fatalf("get node failed: %v", err)
+	}
+	if repository.getSpaceSlug != "personal" {
+		t.Fatalf("expected space slug personal, got %q", repository.getSpaceSlug)
 	}
 }

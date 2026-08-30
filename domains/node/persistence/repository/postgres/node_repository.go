@@ -98,13 +98,14 @@ func (r *NodeRepository) Create(ctx context.Context, entity entities.NodeEntity)
 	return entity, nil
 }
 
-// GetByID returns a single node by its id.
-func (r *NodeRepository) GetByID(ctx context.Context, id string) (entities.NodeEntity, error) {
+// GetByID returns a single node by its id within the specified space.
+func (r *NodeRepository) GetByID(ctx context.Context, id string, spaceSlug string) (entities.NodeEntity, error) {
 	var entity entities.NodeEntity
 	err := r.database.QueryRow(ctx, `
-		SELECT id::text, title, content, is_stub, created_at, updated_at
+		SELECT nodes.id::text, nodes.title, nodes.content, nodes.is_stub, nodes.created_at, nodes.updated_at
 		FROM nodes
-		WHERE id = $1`, id,
+		JOIN knowledge_spaces ON knowledge_spaces.id = nodes.space_id
+		WHERE nodes.id = $1 AND knowledge_spaces.slug = $2`, id, spaceSlug,
 	).Scan(&entity.ID, &entity.Title, &entity.Content, &entity.IsStub, &entity.CreatedAt, &entity.UpdatedAt)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {

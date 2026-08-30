@@ -14,7 +14,7 @@ import (
 type Repository interface {
 	List(ctx context.Context, titleStartsWith string) ([]entities.NodeEntity, error)
 	Create(ctx context.Context, node entities.NodeEntity) (entities.NodeEntity, error)
-	GetByID(ctx context.Context, id string) (entities.NodeEntity, error)
+	GetByID(ctx context.Context, id string, spaceSlug string) (entities.NodeEntity, error)
 	Update(ctx context.Context, node entities.NodeEntity) (entities.NodeEntity, error)
 }
 
@@ -22,7 +22,7 @@ type Repository interface {
 type Service interface {
 	ListNodes(ctx context.Context, titleStartsWith string) ([]domain.NodeDomain, error)
 	CreateNode(ctx context.Context, input domain.CreateNodeInput) (domain.NodeDomain, error)
-	GetNode(ctx context.Context, id string) (domain.NodeDomain, error)
+	GetNode(ctx context.Context, id string, spaceSlug string) (domain.NodeDomain, error)
 	UpdateNode(ctx context.Context, id string, input domain.UpdateNodeInput) (domain.NodeDomain, error)
 }
 
@@ -64,9 +64,9 @@ func (s *nodeService) CreateNode(ctx context.Context, input domain.CreateNodeInp
 	return MapEntityToDomain(createdEntity), nil
 }
 
-// GetNode retrieves a single node by id.
-func (s *nodeService) GetNode(ctx context.Context, id string) (domain.NodeDomain, error) {
-	entity, err := s.repository.GetByID(ctx, id)
+// GetNode retrieves a single node by id in the specified space.
+func (s *nodeService) GetNode(ctx context.Context, id string, spaceSlug string) (domain.NodeDomain, error) {
+	entity, err := s.repository.GetByID(ctx, id, spaceSlug)
 	if err != nil {
 		if errors.Is(err, domain.ErrNodeNotFound) {
 			return domain.NodeDomain{}, err

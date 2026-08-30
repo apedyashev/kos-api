@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"kos-api/domains/node"
+	"kos-api/domains/space"
 	"kos-api/internal/config"
 )
 
@@ -24,10 +25,17 @@ func main() {
 	}
 	defer nodeModule.Close()
 
+	spaceModule, err := space.New(appConfig)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer spaceModule.Close()
+
 	e := echo.New()
 	e.HideBanner = true
 	e.GET("/api", healthHandler)
 	nodeModule.RegisterRoutes(e)
+	spaceModule.RegisterRoutes(e)
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "KOS API root")
 	})

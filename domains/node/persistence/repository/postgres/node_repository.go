@@ -77,6 +77,40 @@ func (r *NodeRepository) List(ctx context.Context, titleStartsWith string) ([]en
 	return nodes, nil
 }
 
+// ListInSpace returns nodes in a space, newest first, optionally filtered by a case-insensitive title prefix.
+func (r *NodeRepository) ListInSpace(ctx context.Context, spaceSlug string, titleStartsWith string) ([]entities.NodeEntity, error) {
+	query := `
+		SELECT nodes.id::text, nodes.title, nodes.content, nodes.is_stub, nodes.created_at, nodes.updated_at
+		FROM nodes
+		JOIN knowledge_spaces ON knowledge_spaces.id = nodes.space_id
+		WHERE knowledge_spaces.slug = $1`
+	arguments := []any{spaceSlug}
+	if titleStartsWith != "" {
+		query += "\nAND nodes.title ILIKE $2 ESCAPE '\\'"
+		arguments = append(arguments, escapeLikePattern(titleStartsWith)+"%")
+	}
+	query += "\nORDER BY nodes.updated_at DESC, nodes.id DESC"
+
+	rows, err := r.database.Query(ctx, query, arguments...)
+	if err != nil {
+		return nil, fmt.Errorf("query nodes in space: %w", err)
+	}
+	defer rows.Close()
+
+	nodes := make([]entities.NodeEntity, 0)
+	for rows.Next() {
+		var entity entities.NodeEntity
+		if err := rows.Scan(&entity.ID, &entity.Title, &entity.Content, &entity.IsStub, &entity.CreatedAt, &entity.UpdatedAt); err != nil {
+			return nil, fmt.Errorf("scan node: %w", err)
+		}
+		nodes = append(nodes, entity)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("iterate nodes: %w", err)
+	}
+	return nodes, nil
+}
+
 // escapeLikePattern escapes ILIKE wildcard characters so user input is matched literally.
 func escapeLikePattern(value string) string {
 	replacer := strings.NewReplacer(`\`, `\\`, `%`, `\%`, `_`, `\_`)

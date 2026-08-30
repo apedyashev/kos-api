@@ -10,12 +10,20 @@ import (
 )
 
 type fakeRepository struct {
-	created      entities.NodeEntity
-	updated      entities.NodeEntity
-	getSpaceSlug string
+	created       entities.NodeEntity
+	updated       entities.NodeEntity
+	getSpaceSlug  string
+	listSpaceSlug string
+	listSearch    string
 }
 
 func (f *fakeRepository) List(context.Context, string) ([]entities.NodeEntity, error) {
+	return nil, nil
+}
+
+func (f *fakeRepository) ListInSpace(_ context.Context, spaceSlug string, titleStartsWith string) ([]entities.NodeEntity, error) {
+	f.listSpaceSlug = spaceSlug
+	f.listSearch = titleStartsWith
 	return nil, nil
 }
 
@@ -69,5 +77,16 @@ func TestGetNodePassesSpaceSlugToRepository(t *testing.T) {
 	}
 	if repository.getSpaceSlug != "personal" {
 		t.Fatalf("expected space slug personal, got %q", repository.getSpaceSlug)
+	}
+}
+
+func TestListNodesInSpacePassesSpaceSlugAndTrimmedSearchToRepository(t *testing.T) {
+	repository := &fakeRepository{}
+	_, err := New(repository).ListNodesInSpace(context.Background(), " personal ", " welcome ")
+	if err != nil {
+		t.Fatalf("list nodes in space failed: %v", err)
+	}
+	if repository.listSpaceSlug != "personal" || repository.listSearch != "welcome" {
+		t.Fatalf("unexpected repository arguments: slug=%q search=%q", repository.listSpaceSlug, repository.listSearch)
 	}
 }

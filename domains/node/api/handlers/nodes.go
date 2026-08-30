@@ -26,7 +26,8 @@ func NewNodesHandler(nodeService service.Service, debugErrors bool) *NodesHandle
 
 // ListNodes handles GET /api/nodes.
 func (h *NodesHandler) ListNodes(c echo.Context) error {
-	nodes, err := h.nodeService.ListNodes(c.Request().Context(), c.QueryParam("search"))
+	spaceSlug := c.Param("spaceSlug")
+	nodes, err := h.nodeService.ListNodesInSpace(c.Request().Context(), spaceSlug, c.QueryParam("search"))
 	if err != nil {
 		logger.Error("list nodes failed", err)
 		return h.internalError(c, "failed to list nodes", err)

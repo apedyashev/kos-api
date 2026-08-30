@@ -19,6 +19,7 @@ This repo follows a domain-centric layered architecture: **API → Service → R
 ```
 main.go                                    # Echo app bootstrap, route registration entrypoint
 internal/config/config.go                 # Env var loading (DATABASE_URL, DEBUG_ERRORS)
+internal/logger/logger.go                  # Centralized logger.Error(message, err) — use in every domain instead of raw log.Printf
 domains/node/
   node.go                                  # Module bootstrap: wires repository -> service -> handler, RegisterRoutes(e *echo.Echo)
   api/dto/nodes.go                         # Request/response DTOs (CreateNodeRequestDTO, UpdateNodeRequestDTO, NodeResponseDTO)
@@ -69,4 +70,5 @@ There is no linter config (no `.golangci.yml` or similar) — `gofmt` and `go ve
 - When adding a new use case to an existing domain or a new domain, follow the layered file layout above exactly; add unit tests under `service/` following the `fakeRepository` pattern in `domains/node/service/service_test.go` (no real DB dependency needed for service-layer tests).
 - Business validation (e.g., required fields) belongs in `service/domain/*.go` `Validate()` methods, not in handlers or repositories.
 - Repository methods must only take/return entities — never DTOs or domain types directly in SQL query signatures beyond the entity struct.
+- Before returning a 500-mapped error from a handler, log it via `logger.Error(message string, err error)` from `internal/logger` — never a raw `log.Printf` — so failures are always visible in server logs regardless of `DEBUG_ERRORS`.
 - After any change, run `make check` from `kos-api/` and confirm it exits 0 before finishing.

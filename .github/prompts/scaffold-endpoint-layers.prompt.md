@@ -23,10 +23,10 @@ Scaffold the file structure for a new endpoint in `kos-api`, strictly following 
   - `domains/<domain>/service/mappers.go` — empty Domain<->Entity mapper stubs for this use case.
   - `domains/<domain>/persistence/entities/<domain>.go` — entity struct stub (types only, no query logic).
   - `domains/<domain>/persistence/repository/<domain>_repository.go` — repository interface method signature.
-  - `domains/<domain>/persistence/repository/postgres/<domain>_repository.go` — method stub with a `TODO` body (no SQL).
+  - `domains/<domain>/persistence/repository/postgres/<domain>_repository.go` — a `NewNodeRepository`-style constructor that actually initializes the `pgxpool.Pool` database connection (mirror the working connection setup in `domains/node/persistence/repository/postgres/node_repository.go`, including `Close()`), plus a method stub with a `TODO` body (no SQL). The database connection itself must be real and working, not a stub — only the query logic inside the method stub is left as `TODO`.
 
 - If the domain already exists, only **add** the new method signatures/stubs to the existing files above (do not touch unrelated existing endpoints or overwrite implemented logic), and register the new route in the domain's `RegisterRoutes`.
 
-- Register/confirm the domain module is wired in `kos-api/main.go` if it is new.
+- Register/confirm the domain module is wired in `kos-api/main.go` if it is new, and that `<domain>.go`'s `New(...)` actually constructs the repository (e.g. via its `NewXRepository(databaseURL)` constructor) so the database connection is initialized when the domain module boots — do not leave repository construction as a `TODO`.
 
 After scaffolding, list every file created or modified and leave all logic as `TODO` comments so the user writes the implementation.

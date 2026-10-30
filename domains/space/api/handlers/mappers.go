@@ -22,3 +22,13 @@ func MapDomainToResponse(currentSpace domain.SpaceDomain) dto.ListSpacesResponse
 		Slug: currentSpace.Slug,
 	}
 }
+
+// MapUpdateRequestToDomain converts an API update request DTO into domain input.
+func MapUpdateRequestToDomain(id string, request dto.UpdateSpaceRequestDTO) domain.UpdateSpaceInput {
+	// TODO: map request DTO fields to domain input.
+	return domain.UpdateSpaceInput{
+		ID:   id,
+		Name: request.Name,
+		Slug: request.Slug,
+	}
+}

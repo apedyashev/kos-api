@@ -2,9 +2,11 @@ package postgres
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"kos-api/domains/space/persistence/entities"
+	"kos-api/domains/space/persistence/repository"
 	"kos-api/domains/space/service/domain"
 
 	"github.com/jackc/pgx/v5"
@@ -13,7 +15,13 @@ import (
 
 // SpaceRepository persists spaces in PostgreSQL.
 type SpaceRepository struct {
-	database *pgxpool.Pool
+	database spaceDatabase
+}
+
+type spaceDatabase interface {
+	Query(context.Context, string, ...any) (pgx.Rows, error)
+	QueryRow(context.Context, string, ...any) pgx.Row
+	Close()
 }
 
 // NewSpaceRepository creates a PostgreSQL connection pool from a Supabase URL.
@@ -72,4 +80,20 @@ func (r *SpaceRepository) List(ctx context.Context, input domain.ListSpacesInput
 		return nil, fmt.Errorf("iterate knowledge_spaces: %w", err)
 	}
 	return spaces, nil
+}
+
+func (r *SpaceRepository) Update(ctx context.Context, entity entities.SpaceEntity) (entities.SpaceEntity, error) {
+	err := r.database.QueryRow(ctx, `
+		UPDATE knowledge_spaces
+		SET name = $2, slug = $3
+		WHERE id = $1
+		RETURNING id::text, name, slug`, entity.ID, entity.Name, entity.Slug,
+	).Scan(&entity.ID, &entity.Name, &entity.Slug)
+	if errors.Is(err, pgx.ErrNoRows) {
+		return entities.SpaceEntity{}, repository.ErrSpaceNotFound
+	}
+	if err != nil {
+		return entities.SpaceEntity{}, fmt.Errorf("update space: %w", err)
+	}
+	return entity, nil
 }

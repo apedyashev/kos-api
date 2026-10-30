@@ -20,3 +20,7 @@ func MapDomainToEntity(currentSpace domain.SpaceDomain) entities.SpaceEntity {
 	// TODO: map domain to entity.
 	return entities.SpaceEntity{}
 }
+
+func MapUpdateInputToEntity(input domain.UpdateSpaceInput) entities.SpaceEntity {
+	return entities.SpaceEntity{ID: input.ID, Name: input.Name, Slug: input.Slug}
+}

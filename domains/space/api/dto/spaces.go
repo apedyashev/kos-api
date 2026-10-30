@@ -9,3 +9,8 @@ type ListSpacesResponseDTO struct {
 	Name string `json:"name"`
 	Slug string `json:"slug"`
 }
+
+type UpdateSpaceRequestDTO struct {
+	Name string `json:"name" validate:"required,min=2,max=20"`
+	Slug string `json:"slug" validate:"required,min=2,max=20"`
+}

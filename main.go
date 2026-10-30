@@ -11,6 +11,7 @@ import (
 	"kos-api/domains/node"
 	"kos-api/domains/space"
 	"kos-api/internal/config"
+	"kos-api/internal/validation"
 )
 
 func main() {
@@ -33,6 +34,7 @@ func main() {
 
 	e := echo.New()
 	e.HideBanner = true
+	e.Validator = validation.New()
 	e.GET("/api", healthHandler)
 	nodeModule.RegisterRoutes(e)
 	spaceModule.RegisterRoutes(e)

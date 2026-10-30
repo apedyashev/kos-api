@@ -32,8 +32,8 @@ func New(appConfig config.Config) (*Module, error) {
 
 // RegisterRoutes registers the space domain routes.
 func (m *Module) RegisterRoutes(e *echo.Echo) {
-	// TODO: register space routes here.
 	e.GET("/api/spaces", m.handler.ListSpaces)
+	e.PUT("/api/spaces/:id", m.handler.UpdateSpace)
 }
 
 // Close releases the space domain resources.
